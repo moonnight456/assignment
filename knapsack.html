@@ -61,7 +61,7 @@
 
         input[type=number],
         input[type=text] {
-            width: 100%;
+            width: 95%;
             padding: 8px;
             border-radius: 8px;
             border: 1px solid #d9edf8
@@ -180,6 +180,10 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        button {
+            margin: 0.1rem;
+        }
     </style>
 </head>
 
@@ -214,9 +218,11 @@
                 </div>
 
                 <div class="controls">
-                    <button id="start">시작 (애니메이션)</button>
-                    <button id="step">한 단계 진행</button>
-                    <button id="reset">초기화</button>
+                    <div>
+                        <button id="start">시작 (애니메이션)</button>
+                        <button id="step">한 단계 진행</button>
+                        <button id="reset">초기화</button>
+                    </div>
                     <div style="flex:1"></div>
                     <label style="font-size:13px">속도</label>
                     <input id="speed" type="range" min="100" max="1500" value="600" />
