@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>배낭 문제(DP) 시각화 — 실시간 체험</title>
+    <style>
+        :root {
+            --blue: #5f9be9;
+            --sky: #a1d2f3;
+            --bg: linear-gradient(180deg, var(--sky), #e8f9fa);
+            --card: #ffffff;
+            --accent: #5776a0;
+            font-family: Inter, Noto Sans KR, Arial, sans-serif;
+            color: #07345a;
+            /*white-space: pre-line;*/
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg)
+        }
+
+        .wrap {
+            max-width: 1000px; 
+            margin: 28px auto;
+            padding: 50px
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 16px
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--blue)
+        }
+
+        .panel {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 6px 20px rgba(11, 99, 214, 0.12);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 18px;
+            margin-top: 16px
+        }
+
+        label {
+            font-size: 13px
+        }
+
+        input[type=number],
+        input[type=text] {
+            width: 95%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #d9edf8 
+        }
+
+        /* --- PATCH된 버튼 스타일 --- */
+        button {
+            background: var(--accent);
+            color: white;
+            border: 0;
+            padding: 8px 16px;
+            /* 글자 여유 */
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: pre-line;
+            /* 줄바꿈 방지 */
+            width: auto;
+            /* 글자 길이에 맞게 자동 폭 */
+            flex-shrink: 0;
+            /* flex에서 눌려서 줄어들지 않게 */
+        }
+
+        .item-row .remove {
+            background: #5a6292
+        }
+
+        .items {
+            margin-top: 12px
+        }
+
+        /* --- PATCH된 item-row 스타일 --- */
+        .item-row {
+            display: flex;
+            flex-wrap: wrap;
+            /* 줄바꿈 허용 */
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .item-row input {
+            width: 76px
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 10px
+        }
+
+        .vis {
+            padding: 12px;
+            overflow: auto
+        }
+
+        /* DP table */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px
+        }
+
+        th,
+        td {
+            border: 1px solid rgba(7, 52, 90, 0.08);
+            padding: 6px;
+            text-align: center
+        }
+
+        th {
+            background: rgba(11, 99, 214, 0.06)
+        }
+
+        td.active {
+            background: linear-gradient(90deg, rgba(11, 99, 214, 0.08), rgba(143, 209, 255, 0.06));
+        }
+
+        td.changed {
+            background: #faf5c5
+        }
+
+        td.selected {
+            outline: 3px solid rgba(69, 102, 145, 0.15)
+        }
+
+        .legend {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px
+        }
+
+        .chip {
+            padding: 6px;
+            border-radius: 8px;
+            background: #dce8f0;
+            border: 1px solid rgba(11, 99, 214, 0.06);
+            font-size: 12px
+        }
+
+        footer {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #234058
+        }
+
+        .result {
+            margin-top: 10px;
+            font-weight: 700
+        }
+
+        /* responsive */
+        @media(max-width:880px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        button {
+            margin: 0.1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap" >
+        <header>
+            <div
+                style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--sky));display:flex;align-items:center;justify-content:center;color:white;font-weight:700">
+                DP</div>
+            <div>
+                <h1>배낭 문제(DP)</h1>
+                <div style="font-size:13px;color:#275675">제한된 무게 안에서 최대 가치를 고르는 과정을 단계별로 보여줍니다.
+                </div>
+            </div>
+        </header>
+
+        <div class="grid" style="width: 1200px; ">
+            <div class="panel" style="width: 400px;">
+                <div style="margin-bottom:10px; display:flex; gap:8px;">
+                    <button class="load-example" data-ex="ex1">예제 1</button>
+                    <button class="load-example" data-ex="ex2">예제 2</button>
+                    <button class="load-example" data-ex="ex3">예제 3</button>
+                    <button class="load-example" data-ex="ex4">예제 4</button>
+                </div>
+                <label>배낭 용량 (최대 무게)</label>
+                <input id="capacity" type="number" value="15" min="1" />
+
+                <div class="items">
+                    <label style="display:block;margin-bottom:6px;margin-top:8px">물건 목록 (무게, 가치)</label>
+                    <div id="items-list"></div>
+
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <input id="new-name" placeholder="이름" type="text" />
+                        <input id="new-weight" placeholder="무게" type="number" />
+                        <input id="new-value" placeholder="가치" type="number" />
+                        <button id="add-item">추가</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div>
+                        <button id="start">시작 (애니메이션)</button>
+                        <button id="step">한 단계 진행</button>
+                        <button id="reset">초기화</button>
+                    </div>
+                    <div style="flex:1"></div>
+                    <label style="font-size:13px">속도</label>
+                    <input id="speed" type="range" min="100" max="1500" value="600" />
+                </div>
+
+                <div style="margin-top:10px">
+                    <label><input id="game-mode" type="checkbox" /> 게임 모드 — 내가 직접 물건을 골라보기</label>
+                    <div id="game-controls" style="margin-top:8px;display:none">
+                        <div style="font-size:13px;color:#17405b">선택한 물건의 총 무게와 가치가 자동으로 계산됩니다. <br>정답이면 초록, 아니면 빨강으로 표시됩니다.
+                        </div>
+                        <button id="check-selection" style="margin-top:8px">정답 확인</button>
+                        <div id="game-result" style="margin-top:6px"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="panel vis" style="width: 600px; margin-left: 80px;">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="font-weight:700">DP 테이블 (행: 물건 개수, 열: 용량)</div>
+                    <div class="chip">체크포인트: 각 칸은 해당 무게까지의 최대 가치를 뜻합니다.</div>
+                </div>
+
+                <div id="table-wrap" style="margin-top:12px;overflow:auto;max-height:540px"></div>
+
+                <div class="legend">
+                    <div class="chip">노란: 갱신된 칸</div>
+                    <div class="chip">파란: 현재 비교 중인 칸</div>
+                    <div class="chip">테두리: 최종 선택된 물건</div>
+                </div>
+
+                <div class="result" id="final-result"></div>
+                <footer>사용법: 물건을 추가하고 용량을 설정 후 <strong>시작</strong>을 눌러 DP가 채워지는 과정을 보세요. <br>완료 후 자동으로 어떤 물건을 넣었는지 역추적해
+                    표시합니다.</footer>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 기본 물건 예시
+        const defaultItems = [
+            { name: 'A', w: 3, v: 4 },
+            { name: 'B', w: 4, v: 5 },
+            { name: 'C', w: 7, v: 10 },
+            { name: 'D', w: 8, v: 11 },
+            { name: 'E', w: 9, v: 13 },
+        ];
+        
+        let items = JSON.parse(JSON.stringify(defaultItems));
+
+        const savedExamples = {
+            ex1: {
+                capacity: 15,
+                items: [
+                    {name:'A', w:3, v:4},
+                    {name:'B', w:4, v:5},
+                    {name:'C', w:7, v:10},
+                    {name:'D', w:8, v:11},
+                    {name:'E', w:9, v:13},
+                ]
+            },
+            ex2: {
+                capacity: 10,
+                items: [
+                    {name:'X', w:1, v:2},
+                    {name:'Y', w:2, v:2},
+                    {name:'Z', w:5, v:6},
+                    {name:'W', w:6, v:9},
+                ]
+            },
+            ex3: {
+                capacity: 20,
+                items: [
+                    {name:'P', w:5, v:8},
+                    {name:'Q', w:9, v:10},
+                    {name:'R', w:4, v:6},
+                    {name:'S', w:12, v:14},
+                ]
+            },
+            ex4: {
+                capacity: 7,
+                items: [
+                    {name:'P', w:6, v:13},
+                    {name:'Q', w:4, v:8},
+                    {name:'R', w:3, v:6},
+                    {name:'S', w:5, v:12},
+                ]
+            }
+    };
+
+        const itemsList = document.getElementById('items-list');
+        const capacityInput = document.getElementById('capacity');
+        const tableWrap = document.getElementById('table-wrap');
+        const startBtn = document.getElementById('start');
+        const resetBtn = document.getElementById('reset');
+        const stepBtn = document.getElementById('step');
+        const speedInput = document.getElementById('speed');
+        const addBtn = document.getElementById('add-item');
+        const gameMode = document.getElementById('game-mode');
+        const gameControls = document.getElementById('game-controls');
+        const checkSelection = document.getElementById('check-selection');
+        const gameResult = document.getElementById('game-result');
+        const finalResult = document.getElementById('final-result');
+
+        let dp = []; // 2D array
+        let n = 0, C = 0;
+        let animInterval = null;
+        let steps = []; // list of steps for animation
+        let stepIndex = 0;
+
+        function renderItems() {
+            itemsList.innerHTML = '';
+            items.forEach((it, idx) => {
+                const div = document.createElement('div'); div.className = 'item-row';
+                div.innerHTML = `
+            <input data-idx="${idx}" class="iname" value="${it.name}" />
+            <input data-idx="${idx}" class="iweight" type="number" value="${it.w}" />
+            <input data-idx="${idx}" class="ivalue" type="number" value="${it.v}" />
+            <button class="remove" data-idx="${idx}">삭제</button>
+        `;
+                itemsList.appendChild(div);
+            });
+            // attach events
+            itemsList.querySelectorAll('.remove').forEach(b => b.onclick = e => { items.splice(+e.target.dataset.idx, 1); renderItems(); });
+            itemsList.querySelectorAll('.iname').forEach(i => i.oninput = e => { items[+e.target.dataset.idx].name = e.target.value });
+            itemsList.querySelectorAll('.iweight').forEach(i => i.oninput = e => { items[+e.target.dataset.idx].w = Number(e.target.value) });
+            itemsList.querySelectorAll('.ivalue').forEach(i => i.oninput = e => { items[+e.target.dataset.idx].v = Number(e.target.value) });
+            rebuildGameSelectors();
+        }
+
+        function rebuildGameSelectors() {
+            if (gameMode.checked) {
+                const rows = itemsList.querySelectorAll('.item-row');
+                rows.forEach((row, idx) => {
+                    if (!row.querySelector('.pick')) {
+                        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'pick'; cb.style.marginRight = '3px'; cb.style.width='10px' //체크박스 폭 조절
+                        row.insertBefore(cb, row.firstChild);
+                    }
+                });
+            } else {
+                itemsList.querySelectorAll('.pick').forEach(el => el.remove());
+            }
+        }
+        
+        document.querySelectorAll('.load-example').forEach(btn=>{
+            btn.addEventListener('click', ()=>{
+                const exKey = btn.dataset.ex;
+                const ex = savedExamples[exKey];
+                if(!ex) return;
+                items = JSON.parse(JSON.stringify(ex.items));
+                capacityInput.value = ex.capacity;
+                renderItems();
+                initDP();
+                drawTable();
+                finalResult.textContent = '';
+            });
+        });
+        addBtn.onclick = () => {
+            const name = document.getElementById('new-name').value || `X${items.length + 1}`;
+            const w = Number(document.getElementById('new-weight').value) || 1;
+            const v = Number(document.getElementById('new-value').value) || 1;
+            items.push({ name, w, v }); renderItems();
+        }
+
+        gameMode.onchange = () => { gameControls.style.display = gameMode.checked ? 'block' : 'none'; rebuildGameSelectors(); }
+
+        function initDP() {
+            n = items.length; C = Math.max(0, Math.floor(Number(capacityInput.value) || 0));
+            dp = Array.from({ length: n + 1 }, () => Array(C + 1).fill(0));
+            steps = [];
+            for (let i = 1; i <= n; i++) {
+                for (let w = 0; w <= C; w++) {
+                    const without = dp[i - 1][w];
+                    let withVal = -Infinity;
+                    if (w - items[i - 1].w >= 0) {
+                        withVal = dp[i - 1][w - items[i - 1].w] + items[i - 1].v;
+                    }
+                    steps.push({ i, w, without, withVal });
+                }
+            }
+        }
+
+        function drawTable(highlight = null, changed = null, selectedItems = []) {
+            tableWrap.innerHTML = '';
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const trh = document.createElement('tr');
+            trh.innerHTML = '<th>i \\ w</th>' + Array.from({ length: C + 1 }, (_, k) => `<th>${k}</th>`).join('');
+            thead.appendChild(trh); table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            for (let i = 0; i <= n; i++) {
+                const tr = document.createElement('tr');
+                const th = document.createElement('th'); th.textContent = i === 0 ? '0 (기본)' : 'i=' + i + (i > 0 ? ` (${items[i - 1].name}, w${items[i - 1].w},v${items[i - 1].v})` : '');
+                tr.appendChild(th);
+                for (let w = 0; w <= C; w++) {
+                    const td = document.createElement('td');
+                    td.textContent = dp[i][w];
+                    if (highlight && highlight.i === i && highlight.w === w) td.classList.add('active');
+                    if (changed && changed.i === i && changed.w === w) td.classList.add('changed');
+                    if (selectedItems.some(si => si.i === i && si.w === w)) td.classList.add('selected');
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+            table.appendChild(tbody); tableWrap.appendChild(table);
+        }
+
+        function animateAll() {
+            if (steps.length === 0) initDP();
+            stepIndex = 0;
+            drawTable();
+            if (animInterval) clearInterval(animInterval);
+            animInterval = setInterval(() => {
+                if (stepIndex >= steps.length) {
+                    clearInterval(animInterval);
+                    finalizeAndBacktrack();
+                    return;
+                }
+                processStep(steps[stepIndex]);
+                stepIndex++;
+            }, Number(speedInput.value));
+        }
+
+        function processStep(st) {
+            const { i, w } = st;
+            drawTable({ i, w });
+            const prev = dp[i - 1][w];
+            let cand = prev;
+            if (w - items[i - 1].w >= 0) {
+                const cand2 = dp[i - 1][w - items[i - 1].w] + items[i - 1].v;
+                if (cand2 > cand) cand = cand2;
+            }
+            dp[i][w] = cand;
+            drawTable({ i, w }, { i, w });
+        }
+
+        function stepOnce() {
+            if (steps.length === 0) initDP();
+            if (stepIndex >= steps.length) { finalizeAndBacktrack(); return; }
+            processStep(steps[stepIndex]); stepIndex++;
+            if (stepIndex >= steps.length) finalizeAndBacktrack();
+        }
+
+        function finalizeAndBacktrack() {
+            const maxVal = dp[n][C];
+            finalResult.textContent = `최대 가치: ${maxVal} (용량 ${C})`;
+            let res = []; let w = C;
+            for (let i = n; i >= 1; i--) {
+                if (dp[i][w] !== dp[i - 1][w]) {
+                    res.push({ i, w });
+                    w = w - items[i - 1].w;
+                }
+            }
+            drawTable(null, null, res);
+        }
+
+        startBtn.onclick = () => { initDP(); animateAll(); }
+        stepBtn.onclick = () => { if (steps.length === 0) initDP(); stepOnce(); }
+        resetBtn.onclick = () => { items = JSON.parse(JSON.stringify(defaultItems)); capacityInput.value = 15; initDP(); stepIndex = 0; dp = []; tableWrap.innerHTML = ''; finalResult.textContent = ''; renderItems(); }
+        
+        speedInput.oninput = () => {
+            if (animInterval) {
+                clearInterval(animInterval);
+                animInterval = setInterval(() => {
+                    if (stepIndex >= steps.length) {
+                        clearInterval(animInterval);
+                        finalizeAndBacktrack();
+                        return;
+                    }
+                    processStep(steps[stepIndex]);
+                    stepIndex++;
+                }, Number(speedInput.value));
+            }
+        };
+
+        
+        checkSelection.onclick = () => {
+            const picks = [];
+            const rows = itemsList.querySelectorAll('.item-row');
+            let totalW = 0, totalV = 0;
+            rows.forEach((row, idx) => {
+                const cb = row.querySelector('.pick');
+                if (cb && cb.checked) { totalW += items[idx].w; totalV += items[idx].v; picks.push(items[idx].name); }
+            });
+            initDP();
+            for (let i = 1; i <= n; i++) for (let w = 0; w <= C; w++) {
+                const prev = dp[i - 1][w];
+                let cand = prev;
+                if (w - items[i - 1].w >= 0) {
+                    const cand2 = dp[i - 1][w - items[i - 1].w] + items[i - 1].v;
+                    if (cand2 > cand) cand = cand2;
+                }
+                dp[i][w] = cand;
+            }
+            const opt = dp[n][C];
+            if (totalW > C) { gameResult.innerHTML = `<span style="color:#b02a2a">선택한 물건의 무게 ${totalW}이(가) 용량 ${C}을(를) 초과합니다.</span>`; }
+            else if (totalV === opt) { gameResult.innerHTML = `<span style="color:green">정답! 선택한 물건 ${picks.join(', ')} 의 가치 ${totalV}가 최댓값 ${opt}입니다.</span>`; }
+            else { gameResult.innerHTML = `<span style="color:#b02a2a">아쉽습니다. 선택한 가치 ${totalV}는 최댓값 ${opt}보다 작습니다. (총 무게 ${totalW})</span>`; }
+        }
+
+        renderItems();
+        initDP();
+        drawTable();
+    </script>
+</body>
+
+</html>
